@@ -1,6 +1,7 @@
 from tsplib95 import load
-from math import sqrt
 from random import choice
+from math import sqrt
+
 
 def load_problem(filename):
     prob = load(filename)
@@ -25,8 +26,6 @@ def create_distance_matrix(prob):
 
 def generate_random_solution(matrix):
     unique_nodes = [i for i in range(len(matrix))]
-    result_left = 0
-    result_right = 0
     solution_left = []
     solution_right = []
     left_or_right = False # True - left, False - right
@@ -45,8 +44,5 @@ def main():
     random_solution = generate_random_solution(matrix)
 
 
-
-
 if __name__ == '__main__':
     main()
-    'essa'
