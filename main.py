@@ -39,13 +39,45 @@ def generate_random_solution(matrix):
     return [solution_left, solution_right]
 
 
+def calculate_solution_cost(solution, matrix):
+    total_cost = 0
+    for i in range(len(solution) - 1):
+        total_cost += matrix[solution[i]][solution[i+1]]
+    total_cost += matrix[solution[-1]][solution[0]]
+    return total_cost
+
+
+def swap_edges(solution):
+    route = solution.copy()
+    i, j = sorted(sample(range(len(route)), 2))
+    route[i], route[j] = route[j], route[i]
+    return route
+
+
+def greedy_algorithm(matrix, solution):
+    current_solution = solution.copy()
+    current_cost = calculate_solution_cost(current_solution, matrix)
+    improving = True
+
+    while improving:
+        improving = False
+
+        #TODO Wewnątrz trasowa i miedzy trasowa zamiana wierzchołkow
+        #Zamiana krawędzi i sprawdzanie poprawy
+        new_solution = swap_edges(current_solution)
+        new_cost = calculate_solution_cost(new_solution, matrix)
+        if new_cost < current_cost:
+            current_solution = new_solution
+            current_cost = new_cost
+            improving = True
+
+    return current_solution
+
+
 def main():
     prob = load_problem('kroA100.tsp')
     matrix = create_distance_matrix(prob)
     random_solution = generate_random_solution(matrix)
-
-
-
 
 if __name__ == '__main__':
     main()
