@@ -47,13 +47,14 @@ def calculate_solution_cost(solution, matrix):
     return total_cost
 
 
-def swap_edges(solution):
-    route = solution.copy()
-    i, j = sorted(sample(range(len(route)), 2))
-    route[i], route[j] = route[j], route[i]
-    return route
+def delta_edge(matrix, solution, i, j):
+    n = len(matrix)
+    a, b = min(i,j), max (i,j)
+    s, l = (a-1) % n, (b-1) % n # Świetnie się tu bawiłem
+    return -matrix[solution[a]][solution[s]] - matrix[solution[b]][solution[l]] \
+    + matrix[solution[a]][solution[b]]+matrix[solution[s]][solution[l]]
 
-
+'''
 def greedy_algorithm(matrix, solution):
     current_solution = solution.copy()
     current_cost = calculate_solution_cost(current_solution, matrix)
@@ -72,7 +73,7 @@ def greedy_algorithm(matrix, solution):
             improving = True
 
     return current_solution
-
+'''
 
 def main():
     prob = load_problem('kroA100.tsp')
