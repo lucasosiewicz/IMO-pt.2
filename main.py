@@ -2,7 +2,8 @@ from tsplib95 import load
 from random import choice
 from math import sqrt
 
-
+#TODO:
+# steepest, wierzchołki
 def load_problem(filename):
     prob = load(filename)
     nodes_x = [x[0] for _, x in prob.node_coords.items()]
@@ -38,10 +39,46 @@ def generate_random_solution(matrix):
     return [solution_left, solution_right]
 
 
+def count_result(solution, matrix):
+    # count whole path's length
+    result = 0
+    for i in range(len(solution)-1):
+        result += matrix[solution[i]][solution[i+1]]
+    return result
+
+def delta_for_vertices(matrix, solution, i, j):
+    # object function
+    return -matrix[solution[i-1]][solution[i]] - matrix[solution[i+1]][solution[i]] - matrix[solution[j-1]][solution[j]] - matrix[solution[j+1]][solution[j]] \
+    + matrix[solution[i-1]][solution[j]] + matrix[solution[i+1]][solution[j]] + matrix[solution[j-1]][solution[i]] + matrix[solution[j+1]][solution[i]]
+
+
+def steepest_vertex(solution, matrix):
+    delta = count_result(solution, matrix)
+    improving = True
+    while improving:
+        vertices = [None, None]
+        for i in range(1, len(solution)-3):
+            for j in range(i+2, len(solution)-1):
+                if delta + delta_for_vertices(matrix, solution, i, j) < delta:
+                    vertices = [solution.index(solution[i]), solution.index(solution[j])]
+                    delta = delta + delta_for_vertices(matrix, solution, i, j)
+
+        if vertices != [None, None]:
+            solution[vertices[0]], solution[vertices[1]] = solution[vertices[1]], solution[vertices[0]]
+            print(vertices)
+        else:
+            improving = False
+
+    return solution
+        
+
 def main():
     prob = load_problem('kroA100.tsp')
     matrix = create_distance_matrix(prob)
     random_solution = generate_random_solution(matrix)
+    print(f'Before: {count_result(random_solution[0], matrix)}')
+    #print(steepest_vertex(random_solution[0], matrix))
+    print(f'After: {count_result(steepest_vertex(random_solution[0], matrix), matrix)}')
 
 
 if __name__ == '__main__':
