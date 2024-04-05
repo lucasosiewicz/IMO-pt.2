@@ -73,7 +73,41 @@ def greedy_algorithm(matrix, solution):
 
     return current_solution
 '''
-def greedy_edges()
+def greedy_algorithm(matrix):
+    n = len(matrix)
+    solution = [0] 
+    visited = [False] * n
+    visited[0] = True
+
+    for _ in range(n - 1):
+        last_node = solution[-1]
+        min_dist = float('inf')
+        min_node = -1
+        for neighbor in range(n):
+            if not visited[neighbor] and matrix[last_node][neighbor] < min_dist:
+                min_dist = matrix[last_node][neighbor]
+                min_node = neighbor
+        solution.append(min_node)
+        visited[min_node] = True
+
+    improving = True
+    while improving:
+        improving = False
+        for i in range(n):
+            for j in range(i + 2, n):
+                delta = delta_edge(matrix, solution, i, j)
+                if delta < 0:
+                    continue
+                if delta < min_dist:
+                    min_dist = delta
+                    min_i, min_j = i, j
+                    improving = True
+
+        if improving:
+            solution[min_i + 1:min_j + 1] = solution[min_i + 1:min_j + 1][::-1]  # Reverse the subsequence
+
+    return solution
+            
 def main():
     prob = load_problem('kroA100.tsp')
     matrix = create_distance_matrix(prob)
