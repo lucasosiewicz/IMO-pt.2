@@ -4,6 +4,7 @@ from math import sqrt
 
 #TODO:
 # steepest, wierzchołki
+
 def load_problem(filename):
     prob = load(filename)
     nodes_x = [x[0] for _, x in prob.node_coords.items()]
@@ -46,28 +47,65 @@ def count_result(solution, matrix):
         result += matrix[solution[i]][solution[i+1]]
     return result
 
-def delta_for_vertices(matrix, solution, i, j):
+def delta_for_inner_vertices(matrix, solution, i, j, l_or_r):
     # object function
-    return -matrix[solution[i-1]][solution[i]] - matrix[solution[i+1]][solution[i]] - matrix[solution[j-1]][solution[j]] - matrix[solution[j+1]][solution[j]] \
-    + matrix[solution[i-1]][solution[j]] + matrix[solution[i+1]][solution[j]] + matrix[solution[j-1]][solution[i]] + matrix[solution[j+1]][solution[i]]
+    return -matrix[solution[l_or_r][i-1]][solution[l_or_r][i]] - matrix[solution[l_or_r][i+1]][solution[l_or_r][i]] \
+           -matrix[solution[l_or_r][j-1]][solution[l_or_r][j]] - matrix[solution[l_or_r][j+1]][solution[l_or_r][j]] \
+           +matrix[solution[l_or_r][i-1]][solution[l_or_r][j]] + matrix[solution[l_or_r][i+1]][solution[l_or_r][j]] \
+           +matrix[solution[l_or_r][j-1]][solution[l_or_r][i]] + matrix[solution[l_or_r][j+1]][solution[l_or_r][i]]
+
+
+def delta_for_outer_vertices(matrix, solution, i, j, l_or_r):
+    return -matrix[solution[l_or_r][i-1]][solution[l_or_r][i]] - matrix[solution[l_or_r][i+1]][solution[l_or_r][i]] \
+           -matrix[solution[abs(l_or_r-1)][j-1]][solution[abs(l_or_r-1)][j]] - matrix[solution[abs(l_or_r-1)][j+1]][solution[abs(l_or_r-1)][j]] \
+           +matrix[solution[l_or_r][i-1]][solution[abs(l_or_r-1)][j]] + matrix[solution[l_or_r][i+1]][solution[abs(l_or_r-1)][j]] \
+           +matrix[solution[abs(l_or_r-1)][j-1]][solution[l_or_r][i]] + matrix[solution[abs(l_or_r-1)][j+1]][solution[l_or_r][i]]
+
+def switch_inner_vertices(solution, left_or_right, vertices):
+    pass
+
+
+def switch_outer_vertices(solution, left_or_right, vertices):
+    pass
 
 
 def steepest_vertex(solution, matrix):
-    delta = count_result(solution, matrix)
     improving = True
+    left_or_right = 0 # 0 - left, 1 - right
     while improving:
+        delta_inner = 0
+        delta_outer = 0
         vertices = [None, None]
-        for i in range(1, len(solution)-3):
-            for j in range(i+2, len(solution)-1):
-                if delta + delta_for_vertices(matrix, solution, i, j) < delta:
-                    vertices = [solution.index(solution[i]), solution.index(solution[j])]
-                    delta = delta + delta_for_vertices(matrix, solution, i, j)
+
+        for i in range(1, len(solution[left_or_right])-3):
+            # inner vertices
+            for j in range(i+2, len(solution[left_or_right])-1):
+                if delta_for_inner_vertices(matrix, solution, i, j, left_or_right) < delta_inner:
+                    vertices = [solution[left_or_right].index(solution[left_or_right][i]), solution[left_or_right].index(solution[left_or_right][j])]
+                    delta_inner = delta_for_inner_vertices(matrix, solution, i, j, left_or_right)
+
+            left_or_right = abs(left_or_right - 1)
+
+            # outer vertices
+            for j in range(1, len(solution[left_or_right])-1):
+                if delta_for_outer_vertices(matrix, solution, i, j, left_or_right) < delta_outer:
+                    vertices = [solution[left_or_right].index(solution[left_or_right][i]), solution[abs(left_or_right-1)].index(solution[abs(left_or_right-1)][j])]
+                    delta_outer = delta_for_outer_vertices(matrix, solution, i, j, left_or_right)
+
 
         if vertices != [None, None]:
-            solution[vertices[0]], solution[vertices[1]] = solution[vertices[1]], solution[vertices[0]]
+            #print(f'inner: {delta_inner}, outer: {delta_outer}')
             print(vertices)
+            if delta_inner < delta_outer:
+                solution[left_or_right][vertices[0]], solution[left_or_right][vertices[1]] = solution[left_or_right][vertices[1]], solution[left_or_right][vertices[0]]
+            else:
+                solution[left_or_right][vertices[0]], solution[abs(left_or_right-1)][vertices[1]] = solution[abs(left_or_right-1)][vertices[1]], solution[left_or_right][vertices[0]]
+                print(solution[0])
+                print(solution[1])
         else:
             improving = False
+
+        left_or_right = abs(left_or_right - 1)
 
     return solution
         
@@ -76,9 +114,12 @@ def main():
     prob = load_problem('kroA100.tsp')
     matrix = create_distance_matrix(prob)
     random_solution = generate_random_solution(matrix)
-    print(f'Before: {count_result(random_solution[0], matrix)}')
+    print(f'Before left: {count_result(random_solution[0], matrix)}')
+    print(f'Before right: {count_result(random_solution[1], matrix)}')
     #print(steepest_vertex(random_solution[0], matrix))
-    print(f'After: {count_result(steepest_vertex(random_solution[0], matrix), matrix)}')
+    solution = steepest_vertex(random_solution, matrix)
+    print(f'After left: {count_result(solution[0], matrix)}')
+    print(f'After left: {count_result(solution[1], matrix)}')
 
 
 if __name__ == '__main__':
