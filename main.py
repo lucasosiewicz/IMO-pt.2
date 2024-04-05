@@ -39,11 +39,10 @@ def generate_random_solution(matrix):
     return [solution_left, solution_right]
 
 
-def calculate_solution_cost(solution, matrix):
+def count_result(solution, matrix):
     total_cost = 0
     for i in range(len(solution) - 1):
         total_cost += matrix[solution[i]][solution[i+1]]
-    total_cost += matrix[solution[-1]][solution[0]]
     return total_cost
 
 
@@ -74,7 +73,7 @@ def greedy_algorithm(matrix, solution):
 
     return current_solution
 '''
-
+def greedy_edges()
 def main():
     prob = load_problem('kroA100.tsp')
     matrix = create_distance_matrix(prob)
