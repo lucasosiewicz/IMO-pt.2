@@ -1,6 +1,6 @@
 from tsplib95 import load
 from random import choice
-from math import sqrt
+from math import sqrt, inf
 
 #TODO:
 # steepest, wierzchołki
@@ -56,6 +56,7 @@ def delta_for_inner_vertices(matrix, solution, i, j, l_or_r):
 
 
 def delta_for_outer_vertices(matrix, solution, i, j, l_or_r):
+    # object function
     return -matrix[solution[l_or_r][i-1]][solution[l_or_r][i]] - matrix[solution[l_or_r][i+1]][solution[l_or_r][i]] \
            -matrix[solution[abs(l_or_r-1)][j-1]][solution[abs(l_or_r-1)][j]] - matrix[solution[abs(l_or_r-1)][j+1]][solution[abs(l_or_r-1)][j]] \
            +matrix[solution[l_or_r][i-1]][solution[abs(l_or_r-1)][j]] + matrix[solution[l_or_r][i+1]][solution[abs(l_or_r-1)][j]] \
@@ -73,39 +74,35 @@ def steepest_vertex(solution, matrix):
     improving = True
     left_or_right = 0 # 0 - left, 1 - right
     while improving:
-        delta_inner = 0
-        delta_outer = 0
-        vertices = [None, None]
+        delta_inner = delta_outer = 0
+        vertices_inner = vertices_outer = [None, None]
 
+        # inner vertices
         for i in range(1, len(solution[left_or_right])-3):
-            # inner vertices
             for j in range(i+2, len(solution[left_or_right])-1):
-                if delta_for_inner_vertices(matrix, solution, i, j, left_or_right) < delta_inner:
-                    vertices = [solution[left_or_right].index(solution[left_or_right][i]), solution[left_or_right].index(solution[left_or_right][j])]
-                    delta_inner = delta_for_inner_vertices(matrix, solution, i, j, left_or_right)
+                delta = delta_for_inner_vertices(matrix, solution, i, j, left_or_right)
+                if delta < 0:
+                    vertices_inner = [solution[left_or_right].index(solution[left_or_right][i]), solution[left_or_right].index(solution[left_or_right][j])]
+                    delta_inner = delta
 
-            left_or_right = abs(left_or_right - 1)
+        # outer vertices
+        for i in range(1, len(solution[left_or_right])-1):
+            for j in range(1, len(solution[abs(left_or_right-1)])-1):
+                delta = delta_for_outer_vertices(matrix, solution, i, j, left_or_right)
+                if delta < 0:
+                    vertices_outer = [solution[left_or_right].index(solution[left_or_right][i]), solution[abs(left_or_right-1)].index(solution[abs(left_or_right-1)][j])]
+                    delta_outer = delta
+        
+        if vertices_inner != [None, None] or vertices_outer != [None, None]:
 
-            # outer vertices
-            for j in range(1, len(solution[left_or_right])-1):
-                if delta_for_outer_vertices(matrix, solution, i, j, left_or_right) < delta_outer:
-                    vertices = [solution[left_or_right].index(solution[left_or_right][i]), solution[abs(left_or_right-1)].index(solution[abs(left_or_right-1)][j])]
-                    delta_outer = delta_for_outer_vertices(matrix, solution, i, j, left_or_right)
-
-
-        if vertices != [None, None]:
-            #print(f'inner: {delta_inner}, outer: {delta_outer}')
-            print(vertices)
             if delta_inner < delta_outer:
-                solution[left_or_right][vertices[0]], solution[left_or_right][vertices[1]] = solution[left_or_right][vertices[1]], solution[left_or_right][vertices[0]]
+                solution[left_or_right][vertices_inner[0]], solution[left_or_right][vertices_inner[1]] = solution[left_or_right][vertices_inner[1]], solution[left_or_right][vertices_inner[0]]
             else:
-                solution[left_or_right][vertices[0]], solution[abs(left_or_right-1)][vertices[1]] = solution[abs(left_or_right-1)][vertices[1]], solution[left_or_right][vertices[0]]
-                print(solution[0])
-                print(solution[1])
+                solution[left_or_right][vertices_outer[0]], solution[abs(left_or_right-1)][vertices_outer[1]] = solution[abs(left_or_right-1)][vertices_outer[1]], solution[left_or_right][vertices_outer[0]]
         else:
             improving = False
 
-        left_or_right = abs(left_or_right - 1)
+        left_or_right = abs(left_or_right-1)
 
     return solution
         
