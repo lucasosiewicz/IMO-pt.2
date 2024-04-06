@@ -1,6 +1,9 @@
 from tsplib95 import load
 from random import choice
 from math import sqrt, inf
+import time
+import numpy as np
+
 
 #TODO:
 # steepest, wierzchołki
@@ -63,11 +66,11 @@ def delta_for_outer_vertices(matrix, solution, i, j, l_or_r):
            +matrix[solution[abs(l_or_r-1)][j-1]][solution[l_or_r][i]] + matrix[solution[abs(l_or_r-1)][j+1]][solution[l_or_r][i]]
 
 def switch_inner_vertices(solution, left_or_right, vertices):
-    pass
+    solution[left_or_right][vertices[0]], solution[left_or_right][vertices[1]] = solution[left_or_right][vertices[1]], solution[left_or_right][vertices[0]]
 
 
 def switch_outer_vertices(solution, left_or_right, vertices):
-    pass
+    solution[left_or_right][vertices[0]], solution[abs(left_or_right-1)][vertices[1]] = solution[abs(left_or_right-1)][vertices[1]], solution[left_or_right][vertices[0]]
 
 
 def steepest_vertex(solution, matrix):
@@ -96,9 +99,9 @@ def steepest_vertex(solution, matrix):
         if vertices_inner != [None, None] or vertices_outer != [None, None]:
 
             if delta_inner < delta_outer:
-                solution[left_or_right][vertices_inner[0]], solution[left_or_right][vertices_inner[1]] = solution[left_or_right][vertices_inner[1]], solution[left_or_right][vertices_inner[0]]
+                switch_inner_vertices(solution, left_or_right, vertices_inner)
             else:
-                solution[left_or_right][vertices_outer[0]], solution[abs(left_or_right-1)][vertices_outer[1]] = solution[abs(left_or_right-1)][vertices_outer[1]], solution[left_or_right][vertices_outer[0]]
+                switch_outer_vertices(solution, left_or_right, vertices_outer)
         else:
             improving = False
 
@@ -108,15 +111,25 @@ def steepest_vertex(solution, matrix):
         
 
 def main():
+    time_results = []
+    path_results = []
+
     prob = load_problem('kroA100.tsp')
     matrix = create_distance_matrix(prob)
-    random_solution = generate_random_solution(matrix)
-    print(f'Before left: {count_result(random_solution[0], matrix)}')
-    print(f'Before right: {count_result(random_solution[1], matrix)}')
+    #print(f'Before left: {count_result(random_solution[0], matrix)}')
+    #print(f'Before right: {count_result(random_solution[1], matrix)}')
     #print(steepest_vertex(random_solution[0], matrix))
-    solution = steepest_vertex(random_solution, matrix)
-    print(f'After left: {count_result(solution[0], matrix)}')
-    print(f'After left: {count_result(solution[1], matrix)}')
+    for _ in range(100):
+        start = time.time()
+        random_solution = generate_random_solution(matrix)
+        solution = steepest_vertex(random_solution, matrix)
+        stop = time.time()
+        time_results.append(stop - start)
+        path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
+    print(f'Mean time: {np.mean(time_results)}')
+    print(f'Mean path length: {np.mean(path_results)}')
+    #print(f'After left: {count_result(solution[0], matrix)}')
+    #print(f'After left: {count_result(solution[1], matrix)}')
 
 
 if __name__ == '__main__':
