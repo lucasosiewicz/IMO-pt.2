@@ -1,8 +1,10 @@
+import matplotlib.pyplot as plt
 from tsplib95 import load
 from random import choice
-from math import sqrt, inf
-import time
+from pathlib import Path
+from math import sqrt
 import numpy as np
+import time
 
 
 #TODO:
@@ -50,6 +52,7 @@ def count_result(solution, matrix):
         result += matrix[solution[i]][solution[i+1]]
     return result
 
+
 def delta_for_inner_vertices(matrix, solution, i, j, l_or_r):
     # object function
     return -matrix[solution[l_or_r][i-1]][solution[l_or_r][i]] - matrix[solution[l_or_r][i+1]][solution[l_or_r][i]] \
@@ -64,6 +67,7 @@ def delta_for_outer_vertices(matrix, solution, i, j, l_or_r):
            -matrix[solution[abs(l_or_r-1)][j-1]][solution[abs(l_or_r-1)][j]] - matrix[solution[abs(l_or_r-1)][j+1]][solution[abs(l_or_r-1)][j]] \
            +matrix[solution[l_or_r][i-1]][solution[abs(l_or_r-1)][j]] + matrix[solution[l_or_r][i+1]][solution[abs(l_or_r-1)][j]] \
            +matrix[solution[abs(l_or_r-1)][j-1]][solution[l_or_r][i]] + matrix[solution[abs(l_or_r-1)][j+1]][solution[l_or_r][i]]
+
 
 def switch_inner_vertices(solution, left_or_right, vertices):
     solution[left_or_right][vertices[0]], solution[left_or_right][vertices[1]] = solution[left_or_right][vertices[1]], solution[left_or_right][vertices[0]]
@@ -108,29 +112,55 @@ def steepest_vertex(solution, matrix):
         left_or_right = abs(left_or_right-1)
 
     return solution
-        
 
+
+def draw_and_save_paths(prob, solution, dir_name, filename):
+
+    # define path and dir to save plots
+    path = Path.cwd() / dir_name
+
+    # if dir doesn't exists, create it
+    if not path.exists():
+        path.mkdir(parents=True, exist_ok=True)
+
+    # create a figure
+    plt.figure()
+    plt.scatter(prob['x'], prob['y'])
+    for sol, c in zip(solution, ['r', 'b']):
+        for i in range(len(sol)-1):
+            x = [prob['x'][sol[i]], prob['x'][sol[i+1]]]
+            y = [prob['y'][sol[i]], prob['y'][sol[i+1]]]
+            plt.plot(x, y, c=c, linewidth=0.7)
+        last_x = [prob['x'][sol[0]], prob['x'][sol[-1]]]
+        last_y = [prob['y'][sol[0]], prob['y'][sol[-1]]]
+        plt.plot(last_x, last_y, c=c, linewidth=0.7)
+
+    # remove axes and make figure smooth and tight
+    plt.axis(False)
+    plt.tight_layout()
+    # save figure
+    plt.savefig(f'{path}\{filename}.png')
+
+        
 def main():
     time_results = []
     path_results = []
 
     prob = load_problem('kroA100.tsp')
     matrix = create_distance_matrix(prob)
-    #print(f'Before left: {count_result(random_solution[0], matrix)}')
-    #print(f'Before right: {count_result(random_solution[1], matrix)}')
-    #print(steepest_vertex(random_solution[0], matrix))
-    for _ in range(100):
+    random_solution = generate_random_solution(matrix)
+    dir_name = 'steepest_vertices_random'
+    for n in range(100):
         start = time.time()
         random_solution = generate_random_solution(matrix)
         solution = steepest_vertex(random_solution, matrix)
         stop = time.time()
         time_results.append(stop - start)
         path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
+        draw_and_save_paths(prob, random_solution, dir_name, f'{dir_name}_{n}')
     print(f'Mean time: {np.mean(time_results)}')
     print(f'Mean path length: {np.mean(path_results)}')
-    #print(f'After left: {count_result(solution[0], matrix)}')
-    #print(f'After left: {count_result(solution[1], matrix)}')
-
+    print(f'Best iteration: {np.argmax(path_results)}')
 
 if __name__ == '__main__':
     main()
