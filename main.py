@@ -7,9 +7,6 @@ import numpy as np
 import time
 
 
-#TODO:
-# steepest, wierzchołki
-
 def load_problem(filename):
     prob = load(filename)
     nodes_x = [x[0] for _, x in prob.node_coords.items()]
@@ -43,6 +40,38 @@ def generate_random_solution(matrix):
         solution_left.append(node) if left_or_right else solution_right.append(node)
 
     return [solution_left, solution_right]
+
+
+def two_regret(matrix):
+    unique_nodes = [i for i in range(len(matrix))]
+    solution = []
+
+    for _ in range(2):
+
+        start = choice(unique_nodes)
+        unique_nodes.remove(start)
+        graph_path = [start] * 2
+        total_length = 0
+        
+        while len(graph_path) < (len(matrix) // 2) + 1:
+            regrets = []
+            for vertex in unique_nodes:
+                considered = sorted(((total_length - matrix[graph_path[i - 1]][graph_path[i]] +
+                                    matrix[graph_path[i - 1]][vertex] + matrix[vertex][graph_path[i]],
+                                    i) for i in range(1, len(graph_path))), key=lambda x: x[0])
+                if len(considered) >= 2:
+                    regret = considered[1][0] - considered[0][0]
+                else:
+                    regret = -considered[0][0]
+                length, best_i = considered[0]
+                regrets.append((regret, vertex, best_i, length))
+            temp = max(regrets, key=lambda x: x[0])
+            best_vertex, best_i, total_length = temp[1], temp[2], temp[3]
+            graph_path = graph_path[:best_i] + [best_vertex] + graph_path[best_i:]
+            unique_nodes.remove(best_vertex)
+        solution.append(graph_path)
+    #return graph_path, unique_nodes
+    print(solution)
 
 
 def count_result(solution, matrix):
@@ -144,10 +173,9 @@ def draw_and_save_paths(prob, solution, dir_name, filename):
 
 
 def random_walk(solution, matrix):
-    improving = True
     type_of_neighborhood = [0,1]#,2]  # 0 - inner vertices, 1 - inner edges, 2 - outer vertices
     start = time.time()
-    stop = time.time()
+    stop = start
     while stop - start < 0.981:
         # random choice of movement and path
         movement = choice(type_of_neighborhood)
@@ -176,6 +204,12 @@ def random_walk(solution, matrix):
     return solution
 
 
+def save_results_to_file(filepath, results):
+    with open(filepath, 'w') as file:
+        for k, v in results.items():
+            file.write(f'{k}: {v}\n')
+
+
 def main():
     time_results = []
     path_results = []
@@ -192,11 +226,16 @@ def main():
         time_results.append(stop - start)
         path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
         draw_and_save_paths(prob, random_solution, dir_name, f'{dir_name}_{n}')
-    print(f'Mean time: {np.mean(time_results)}')
-    print(f'Mean path length: {np.mean(path_results)}')
-    print(f'Best path length: {np.min(path_results)}')
-    print(f'Worst path length: {np.max(path_results)}')
-    print(f'Best iteration: {np.argmax(path_results)}')
+
+    results = {
+        'Mean time': np.mean(time_results),
+        'Mean path length': np.mean(path_results),
+        'Best path length': np.min(path_results),
+        'Worst path length': np.max(path_results),
+        'Best iteration': np.argmax(path_results)}
+
+    save_results_to_file(f'{dir_name}\\results.txt', results)
+
 
     time_results = []
     path_results = []
@@ -210,5 +249,17 @@ def main():
         path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
         draw_and_save_paths(prob, random_solution, dir_name, f'{dir_name}_{n}')
 
+    results = {
+        'Mean time': np.mean(time_results),
+        'Mean path length': np.mean(path_results),
+        'Best path length': np.min(path_results),
+        'Worst path length': np.max(path_results),
+        'Best iteration': np.argmax(path_results)
+    }
+
+    save_results_to_file(f'{dir_name}\\results.txt', results)
+
+
 if __name__ == '__main__':
-    main()
+    #main()
+    two_regret(create_distance_matrix(load_problem('kroA100.tsp')))
