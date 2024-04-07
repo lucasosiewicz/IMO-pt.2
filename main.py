@@ -68,9 +68,7 @@ def delta_for_outer_vertices(matrix, solution, i, j, l_or_r):
 def delta_for_edges(matrix, solution, i, j, k, l, l_or_r):
     # object function
     return -matrix[solution[l_or_r][i]][solution[l_or_r][i+1]] - matrix[solution[1-l_or_r][k]][solution[1-l_or_r][k+1]] \
-           - matrix[solution[l_or_r][j]][solution[l_or_r][j+1]] - matrix[solution[1-l_or_r][l]][solution[1-l_or_r][l+1]] \
-           + matrix[solution[l_or_r][i]][solution[1-l_or_r][k]] + matrix[solution[1-l_or_r][k+1]][solution[l_or_r][i+1]] \
-           + matrix[solution[l_or_r][j]][solution[1-l_or_r][l]] + matrix[solution[1-l_or_r][l+1]][solution[l_or_r][j+1]]
+           + matrix[solution[l_or_r][i]][solution[1-l_or_r][k]] + matrix[solution[1-l_or_r][k+1]][solution[l_or_r][i+1]]
 
 def switch_inner_vertices(solution, left_or_right, vertices):
     solution[left_or_right][vertices[0]], solution[left_or_right][vertices[1]] = solution[left_or_right][vertices[1]], solution[left_or_right][vertices[0]]
@@ -203,70 +201,6 @@ def random_walk(solution, matrix):
             if delta_for_outer_vertices(matrix, solution, i, j, left_or_right) < 0:
                 switch_outer_vertices(solution, left_or_right, [i, j])
         stop = time.time()
-
-    return solution
-
-def second_regret(solution, matrix):
-    improving = True
-    type_of_neighborhood = [0, 1, 2]  # 0 - inner vertices, 1 - inner edges, 2 - outer vertices
-    best_solution = solution.copy()
-    best_delta = float('inf')
-    second_best_solution = solution.copy()
-    second_best_delta = float('inf')
-
-    while improving:
-        # Random choice of movement
-        movement = choice(type_of_neighborhood)
-        left_or_right = choice([0, 1])
-        if movement == 0:
-            # Inner vertices
-            vertices = [choice(solution[left_or_right][1:-2]), choice(solution[left_or_right][1:-2])]
-            i = solution[left_or_right].index(vertices[0])
-            j = solution[left_or_right].index(vertices[1])
-
-            delta = delta_for_inner_vertices(matrix, solution, i, j, left_or_right)
-            if delta < 0:
-                switch_inner_vertices(solution, left_or_right, [i, j])
-            elif delta < best_delta:
-                second_best_delta = best_delta
-                second_best_solution = best_solution.copy()
-                best_delta = delta
-                best_solution = solution.copy()
-
-        elif movement == 1:
-            # Inner edges
-            vertices = [choice(solution[left_or_right][1:-2]), choice(solution[left_or_right][1:-2]),
-                        choice(solution[left_or_right][1:-2]), choice(solution[left_or_right][1:-2])]
-            i, j, k, l = [solution[left_or_right].index(v) for v in vertices]
-
-            delta = delta_for_edges(matrix, solution, i, j, k, l, left_or_right)
-            if delta < 0:
-                solution = edge_swap(solution, left_or_right, [i, j, k, l])
-            elif delta < best_delta:
-                second_best_delta = best_delta
-                second_best_solution = best_solution.copy()
-                best_delta = delta
-                best_solution = solution.copy()
-
-        else:
-            # Outer vertices
-            vertices = [choice(solution[left_or_right][1:-1]), choice(solution[abs(left_or_right - 1)][1:-1])]
-            i = solution[left_or_right].index(vertices[0])
-            j = solution[abs(left_or_right - 1)].index(vertices[1])
-
-            delta = delta_for_outer_vertices(matrix, solution, i, j, left_or_right)
-            if delta < 0:
-                switch_outer_vertices(solution, left_or_right, [i, j])
-            elif delta < best_delta:
-                second_best_delta = best_delta
-                second_best_solution = best_solution.copy()
-                best_delta = delta
-                best_solution = solution.copy()
-
-        if best_delta >= 0:
-            # Revert to second best solution if no improvement is achieved
-            improving = False
-            solution = second_best_solution.copy()
 
     return solution
 
