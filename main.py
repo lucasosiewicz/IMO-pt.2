@@ -209,9 +209,9 @@ def random_walk(solution, matrix):
 def second_regret(solution, matrix):
     improving = True
     type_of_neighborhood = [0, 1, 2]  # 0 - inner vertices, 1 - inner edges, 2 - outer vertices
-    best_solution = solution
+    best_solution = solution.copy()
     best_delta = float('inf')
-    second_best_solution = solution
+    second_best_solution = solution.copy()
     second_best_delta = float('inf')
 
     while improving:
