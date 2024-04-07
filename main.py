@@ -91,16 +91,22 @@ def greedy_edge_swap(solution, matrix):
         best_delta = 0
         best_vertices = [None, None]
 
+        # Create a new function with matrix, solution, and left_or_right pre-filled
+        delta_func = partial(delta_for_edges, matrix, solution, left_or_right)
+
         for i in range(1, len(solution[left_or_right])-3):
             for j in range(i+2, len(solution[left_or_right])-1):
-                delta = delta_for_edges(matrix, solution, i, j, left_or_right)
+                delta = delta_func(i, j)
                 if delta < best_delta:
                     best_vertices = [i, j]
                     best_delta = delta
+                    improving = True
+                    break  # Stop searching as soon as we find an improvement
+            if improving:
+                break  # Stop searching as soon as we find an improvement
 
         if best_vertices[0] is not None:
             solution[left_or_right] = edge_swap(solution[left_or_right], best_vertices[0], best_vertices[1])
-            improving = True
 
         left_or_right = abs(left_or_right-1)
 
