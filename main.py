@@ -229,7 +229,7 @@ def random_walk(solution, matrix):
     type_of_neighborhood = [0,1,2]  # 0 - inner vertices, 1 - inner edges, 2 - outer vertices
     start = time.time()
     stop = start
-    while stop - start < 0.981:
+    while stop - start < 0.263:
         # random choice of movement and path
         movement = choice(type_of_neighborhood)
         left_or_right = choice([0,1])
@@ -245,7 +245,7 @@ def random_walk(solution, matrix):
             # inner edges
             vertices = [choice(solution[left_or_right][1:-2]), choice(solution[left_or_right][1:-2])]
             i = solution[left_or_right].index(vertices[0])
-            j = solution[solution[left_or_right].index(vertices[1]) + 1]
+            j = solution[left_or_right].index(vertices[1])
 
             if delta_for_inner_edges(matrix, solution, i, j, left_or_right) < 0:
                 switch_inner_edges(solution, left_or_right, [i, j])
@@ -308,7 +308,7 @@ def main():
                 save_results_to_file(f'{cycle_name}_before_optimization.txt', results)
 
 
-            dir_name = f"{cycle_name}_random_walk"
+            dir_name = f"{prob_name}_{cycle_name}_random_walk"
             time_results = []
             path_results = []
             for n in range(100):
