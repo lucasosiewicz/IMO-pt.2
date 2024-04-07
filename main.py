@@ -65,10 +65,10 @@ def delta_for_outer_vertices(matrix, solution, i, j, l_or_r):
            +matrix[solution[l_or_r][i-1]][solution[abs(l_or_r-1)][j]] + matrix[solution[l_or_r][i+1]][solution[abs(l_or_r-1)][j]] \
            +matrix[solution[abs(l_or_r-1)][j-1]][solution[l_or_r][i]] + matrix[solution[abs(l_or_r-1)][j+1]][solution[l_or_r][i]]
 
-def delta_for_edges(matrix, solution, i, j, k, l, l_or_r):
+def delta_for_edges(matrix, solution, i, j, l_or_r):
     # object function
-    return -matrix[solution[l_or_r][i]][solution[l_or_r][i+1]] - matrix[solution[1-l_or_r][k]][solution[1-l_or_r][k+1]] \
-           + matrix[solution[l_or_r][i]][solution[1-l_or_r][k]] + matrix[solution[1-l_or_r][k+1]][solution[l_or_r][i+1]]
+    return -matrix[solution[l_or_r][i]][solution[l_or_r][i+1]] - matrix[solution[1-l_or_r][j]][solution[1-l_or_r][j+1]] \
+           + matrix[solution[l_or_r][i]][solution[1-l_or_r][j]] + matrix[solution[1-l_or_r][j+1]][solution[l_or_r][i+1]]
 
 def switch_inner_vertices(solution, left_or_right, vertices):
     solution[left_or_right][vertices[0]], solution[left_or_right][vertices[1]] = solution[left_or_right][vertices[1]], solution[left_or_right][vertices[0]]
@@ -77,28 +77,33 @@ def switch_inner_vertices(solution, left_or_right, vertices):
 def switch_outer_vertices(solution, left_or_right, vertices):
     solution[left_or_right][vertices[0]], solution[abs(left_or_right-1)][vertices[1]] = solution[abs(left_or_right-1)][vertices[1]], solution[left_or_right][vertices[0]]
 
-def edge_swap(solution, left_or_right, vertices):
-    solution[left_or_right][vertices[0]], solution[left_or_right][vertices[2]] = solution[left_or_right][vertices[2]], solution[left_or_right][vertices[0]]
-    solution[left_or_right][vertices[1]], solution[1 - left_or_right][vertices[3]] = solution[1 - left_or_right][vertices[3]], solution[left_or_right][vertices[1]]
+def edge_swap(solution, i, j):
+    if i > j:
+        i, j = j, i
+    solution[i+1:j] = reversed(solution[i+1:j])
     return solution
 
-def greedy_edges(solution, matrix):
+def greedy_edge_swap(solution, matrix):
     improving = True
+    left_or_right = 0 # 0 - left, 1 - right
     while improving:
-        min_delta = float('inf')
-        vertices = [None, None, None, None]
-        for i in range(len(solution[0])-1):
-            for j in range(i+1, len(solution[0])-1):
-                for k in range(len(solution[1])-1):
-                    for l in range(k+1, len(solution[1])-1):
-                        delta = delta_for_edges(matrix, solution, i, j, k, l, 0)
-                        if delta < min_delta:
-                            min_delta = delta
-                            vertices = [i, j, k, l]
-        if min_delta < 0:
-            solution = edge_swap(solution, 0, vertices)
-        else:
-            improving = False
+        improving = False
+        best_delta = 0
+        best_vertices = [None, None]
+
+        for i in range(1, len(solution[left_or_right])-3):
+            for j in range(i+2, len(solution[left_or_right])-1):
+                delta = delta_for_edges(matrix, solution, i, j, left_or_right)
+                if delta < best_delta:
+                    best_vertices = [i, j]
+                    best_delta = delta
+
+        if best_vertices[0] is not None:
+            solution[left_or_right] = edge_swap(solution[left_or_right], best_vertices[0], best_vertices[1])
+            improving = True
+
+        left_or_right = abs(left_or_right-1)
+
     return solution
 
 def steepest_vertex(solution, matrix):
