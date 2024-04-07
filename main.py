@@ -171,7 +171,7 @@ def draw_and_save_paths(prob, solution, dir_name, filename):
 
 def random_walk(solution, matrix):
     improving = True
-    type_of_neighborhood = [0,1]#,2]  # 0 - inner vertices, 1 - inner edges, 2 - outer vertices
+    type_of_neighborhood = [0,1,2]  # 0 - inner vertices, 1 - inner edges, 2 - outer vertices
     start = time.time()
     stop = time.time()
     while stop - start < 0.981:
@@ -209,37 +209,67 @@ def random_walk(solution, matrix):
 def second_regret(solution, matrix):
     improving = True
     type_of_neighborhood = [0, 1, 2]  # 0 - inner vertices, 1 - inner edges, 2 - outer vertices
+    best_solution = solution
+    best_delta = float('inf')
+    second_best_solution = solution
+    second_best_delta = float('inf')
+
     while improving:
-        # random choice of movement
+        # Random choice of movement
         movement = choice(type_of_neighborhood)
         left_or_right = choice([0, 1])
-        if movement == 0:       
-            # inner vertices
+        if movement == 0:
+            # Inner vertices
             vertices = [choice(solution[left_or_right][1:-2]), choice(solution[left_or_right][1:-2])]
             i = solution[left_or_right].index(vertices[0])
             j = solution[left_or_right].index(vertices[1])
 
-            if delta_for_inner_vertices(matrix, solution, i, j, left_or_right) < 0:
+            delta = delta_for_inner_vertices(matrix, solution, i, j, left_or_right)
+            if delta < 0:
                 switch_inner_vertices(solution, left_or_right, [i, j])
+            elif delta < best_delta:
+                second_best_delta = best_delta
+                second_best_solution = best_solution.copy()
+                best_delta = delta
+                best_solution = solution.copy()
+
         elif movement == 1:
-            # inner edges
+            # Inner edges
             vertices = [choice(solution[left_or_right][1:-2]), choice(solution[left_or_right][1:-2]),
                         choice(solution[left_or_right][1:-2]), choice(solution[left_or_right][1:-2])]
             i, j, k, l = [solution[left_or_right].index(v) for v in vertices]
 
-            if delta_for_edges(matrix, solution, i, j, k, l, left_or_right) < 0:
+            delta = delta_for_edges(matrix, solution, i, j, k, l, left_or_right)
+            if delta < 0:
                 solution = edge_swap(solution, left_or_right, [i, j, k, l])
+            elif delta < best_delta:
+                second_best_delta = best_delta
+                second_best_solution = best_solution.copy()
+                best_delta = delta
+                best_solution = solution.copy()
+
         else:
-            # outer vertices
+            # Outer vertices
             vertices = [choice(solution[left_or_right][1:-1]), choice(solution[abs(left_or_right - 1)][1:-1])]
             i = solution[left_or_right].index(vertices[0])
             j = solution[abs(left_or_right - 1)].index(vertices[1])
 
-            if delta_for_outer_vertices(matrix, solution, i, j, left_or_right) < 0:
+            delta = delta_for_outer_vertices(matrix, solution, i, j, left_or_right)
+            if delta < 0:
                 switch_outer_vertices(solution, left_or_right, [i, j])
+            elif delta < best_delta:
+                second_best_delta = best_delta
+                second_best_solution = best_solution.copy()
+                best_delta = delta
+                best_solution = solution.copy()
 
-        improving = False
+        if best_delta >= 0:
+            # Revert to second best solution if no improvement is achieved
+            improving = False
+            solution = second_best_solution.copy()
+
     return solution
+
 
 
 def main():
