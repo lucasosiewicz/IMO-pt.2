@@ -65,10 +65,12 @@ def delta_for_outer_vertices(matrix, solution, i, j, l_or_r):
            +matrix[solution[l_or_r][i-1]][solution[abs(l_or_r-1)][j]] + matrix[solution[l_or_r][i+1]][solution[abs(l_or_r-1)][j]] \
            +matrix[solution[abs(l_or_r-1)][j-1]][solution[l_or_r][i]] + matrix[solution[abs(l_or_r-1)][j+1]][solution[l_or_r][i]]
 
-def delta_for_edges(matrix, solution, i, j, l_or_r):
-    # object function
-    return -matrix[solution[l_or_r][i]][solution[l_or_r][i+1]] - matrix[solution[1-l_or_r][j]][solution[1-l_or_r][j+1]] \
-           + matrix[solution[l_or_r][i]][solution[1-l_or_r][j]] + matrix[solution[1-l_or_r][j+1]][solution[l_or_r][i+1]]
+def delta_for_edges(matrix, solution, l_or_r, i, j):
+    if i < len(solution[l_or_r]) - 1 and j < len(solution[1-l_or_r]) - 1:
+        return -matrix[solution[l_or_r][i]][solution[l_or_r][i+1]] - matrix[solution[1-l_or_r][j]][solution[1-l_or_r][j+1]] \
+               + matrix[solution[l_or_r][i]][solution[1-l_or_r][j]] + matrix[solution[l_or_r][i+1]][solution[1-l_or_r][j+1]]
+    else:
+        return 1
 
 def switch_inner_vertices(solution, left_or_right, vertices):
     solution[left_or_right][vertices[0]], solution[left_or_right][vertices[1]] = solution[left_or_right][vertices[1]], solution[left_or_right][vertices[0]]
@@ -88,25 +90,20 @@ def greedy_edge_swap(solution, matrix):
     left_or_right = 0 # 0 - left, 1 - right
     while improving:
         improving = False
-        best_delta = 0
-        best_vertices = [None, None]
-
-        # Create a new function with matrix, solution, and left_or_right pre-filled
-        delta_func = partial(delta_for_edges, matrix, solution, left_or_right)
+        better_vertices = [None, None]
 
         for i in range(1, len(solution[left_or_right])-3):
             for j in range(i+2, len(solution[left_or_right])-1):
-                delta = delta_func(i, j)
-                if delta < best_delta:
-                    best_vertices = [i, j]
-                    best_delta = delta
+                delta = delta_for_edges(matrix, solution, left_or_right, i, j)
+                if delta < 0:
+                    better_vertices = [i, j]
                     improving = True
                     break  # Stop searching as soon as we find an improvement
             if improving:
                 break  # Stop searching as soon as we find an improvement
 
-        if best_vertices[0] is not None:
-            solution[left_or_right] = edge_swap(solution[left_or_right], best_vertices[0], best_vertices[1])
+        if better_vertices[0] is not None:
+            solution[left_or_right] = edge_swap(solution[left_or_right], better_vertices[0], better_vertices[1])
 
         left_or_right = abs(left_or_right-1)
 
@@ -218,6 +215,7 @@ def random_walk(solution, matrix):
 
 
 def main():
+    '''
     time_results = []
     path_results = []
 
@@ -238,7 +236,33 @@ def main():
     print(f'Best path length: {np.min(path_results)}')
     print(f'Worst path length: {np.max(path_results)}')
     print(f'Best iteration: {np.argmax(path_results)}')
+    '''
+    
+    time_results = []
+    path_results = []
 
+    prob = load_problem('kroA100.tsp')
+    matrix = create_distance_matrix(prob)
+    random_solution = generate_random_solution(matrix)
+    dir_name = 'greedy_edge_swap'
+    start_time = time.time()
+    for n in range(1):
+        elapsed_time = time.time() - start_time
+        if elapsed_time > 10: 
+            break
+        start = time.time()
+        random_solution = generate_random_solution(matrix)
+        solution = greedy_edge_swap(random_solution, matrix)
+        stop = time.time()
+        time_results.append(stop - start)
+        path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
+        draw_and_save_paths(prob, random_solution, dir_name, f'{dir_name}_{n}')
+    print(f'Mean time: {np.mean(time_results)}')
+    print(f'Mean path length: {np.mean(path_results)}')
+    print(f'Best path length: {np.min(path_results)}')
+    print(f'Worst path length: {np.max(path_results)}')
+    print(f'Best iteration: {np.argmax(path_results)}')
+'''
     time_results = []
     path_results = []
     dir_name = 'random_walk'
@@ -250,6 +274,7 @@ def main():
         time_results.append(stop - start)
         path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
         draw_and_save_paths(prob, random_solution, dir_name, f'{dir_name}_{n}')
+'''
 
 if __name__ == '__main__':
     main()
