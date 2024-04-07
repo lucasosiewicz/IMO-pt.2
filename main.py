@@ -7,9 +7,6 @@ import numpy as np
 import time
 
 
-#TODO:
-# steepest, wierzchołki
-
 def load_problem(filename):
     prob = load(filename)
     nodes_x = [x[0] for _, x in prob.node_coords.items()]
@@ -45,6 +42,38 @@ def generate_random_solution(matrix):
     return [solution_left, solution_right]
 
 
+def two_regret(matrix):
+    unique_nodes = [i for i in range(len(matrix))]
+    solution = []
+
+    for _ in range(2):
+
+        start = choice(unique_nodes)
+        unique_nodes.remove(start)
+        graph_path = [start] * 2
+        total_length = 0
+        
+        while len(graph_path) < (len(matrix) // 2) + 1:
+            regrets = []
+            for vertex in unique_nodes:
+                considered = sorted(((total_length - matrix[graph_path[i - 1]][graph_path[i]] +
+                                    matrix[graph_path[i - 1]][vertex] + matrix[vertex][graph_path[i]],
+                                    i) for i in range(1, len(graph_path))), key=lambda x: x[0])
+                if len(considered) >= 2:
+                    regret = considered[1][0] - considered[0][0]
+                else:
+                    regret = -considered[0][0]
+                length, best_i = considered[0]
+                regrets.append((regret, vertex, best_i, length))
+            temp = max(regrets, key=lambda x: x[0])
+            best_vertex, best_i, total_length = temp[1], temp[2], temp[3]
+            graph_path = graph_path[:best_i] + [best_vertex] + graph_path[best_i:]
+            unique_nodes.remove(best_vertex)
+        solution.append(graph_path)
+
+    return solution
+
+
 def count_result(solution, matrix):
     # count whole path's length
     result = 0
@@ -69,6 +98,14 @@ def delta_for_outer_vertices(matrix, solution, i, j, l_or_r):
            +matrix[solution[abs(l_or_r-1)][j-1]][solution[l_or_r][i]] + matrix[solution[abs(l_or_r-1)][j+1]][solution[l_or_r][i]]
 
 
+def delta_for_inner_edges(matrix, solution, i, j, l_or_r):
+    # object function
+    return - matrix[solution[l_or_r][i-1]][solution[l_or_r][i]] \
+           - matrix[solution[l_or_r][j]][solution[l_or_r][j+1]] \
+           + matrix[solution[l_or_r][i-1]][solution[l_or_r][j]] \
+           + matrix[solution[l_or_r][i]][solution[l_or_r][j+1]]
+
+
 def switch_inner_vertices(solution, left_or_right, vertices):
     solution[left_or_right][vertices[0]], solution[left_or_right][vertices[1]] = solution[left_or_right][vertices[1]], solution[left_or_right][vertices[0]]
 
@@ -77,7 +114,11 @@ def switch_outer_vertices(solution, left_or_right, vertices):
     solution[left_or_right][vertices[0]], solution[abs(left_or_right-1)][vertices[1]] = solution[abs(left_or_right-1)][vertices[1]], solution[left_or_right][vertices[0]]
 
 
-def steepest_vertex(solution, matrix):
+def switch_inner_edges(solution, left_or_right, vertices):
+    solution[left_or_right][vertices[0]:vertices[1]+1] = [x for x in solution[left_or_right][vertices[0]:vertices[1]+1][::-1]]
+
+
+def steepest_vertex(solution, matrix, delta_function, replace_function):
     improving = True
     left_or_right = 0 # 0 - left, 1 - right
     while improving:
@@ -87,23 +128,22 @@ def steepest_vertex(solution, matrix):
         # inner vertices
         for i in range(1, len(solution[left_or_right])-3):
             for j in range(i+2, len(solution[left_or_right])-1):
-                delta = delta_for_inner_vertices(matrix, solution, i, j, left_or_right)
-                if delta < 0:
+                delta = round(delta_function(matrix, solution, i, j, left_or_right), 2)
+                if delta < delta_inner:
                     vertices_inner = [solution[left_or_right].index(solution[left_or_right][i]), solution[left_or_right].index(solution[left_or_right][j])]
                     delta_inner = delta
 
         # outer vertices
         for i in range(1, len(solution[left_or_right])-1):
             for j in range(1, len(solution[abs(left_or_right-1)])-1):
-                delta = delta_for_outer_vertices(matrix, solution, i, j, left_or_right)
-                if delta < 0:
+                delta = round(delta_for_outer_vertices(matrix, solution, i, j, left_or_right), 2)
+                if delta < delta_outer:
                     vertices_outer = [solution[left_or_right].index(solution[left_or_right][i]), solution[abs(left_or_right-1)].index(solution[abs(left_or_right-1)][j])]
                     delta_outer = delta
         
         if vertices_inner != [None, None] or vertices_outer != [None, None]:
-
             if delta_inner < delta_outer:
-                switch_inner_vertices(solution, left_or_right, vertices_inner)
+                replace_function(solution, left_or_right, vertices_inner)
             else:
                 switch_outer_vertices(solution, left_or_right, vertices_outer)
         else:
@@ -144,10 +184,9 @@ def draw_and_save_paths(prob, solution, dir_name, filename):
 
 
 def random_walk(solution, matrix):
-    improving = True
     type_of_neighborhood = [0,1]#,2]  # 0 - inner vertices, 1 - inner edges, 2 - outer vertices
     start = time.time()
-    stop = time.time()
+    stop = start
     while stop - start < 0.981:
         # random choice of movement and path
         movement = choice(type_of_neighborhood)
@@ -176,39 +215,45 @@ def random_walk(solution, matrix):
     return solution
 
 
+def save_results_to_file(filepath, results):
+    with open(filepath, 'w') as file:
+        for k, v in results.items():
+            file.write(f'{k}: {v}\n')
+
+
 def main():
-    time_results = []
-    path_results = []
+    files = ['kroA100.tsp', 'kroB100.tsp']
 
-    prob = load_problem('kroA100.tsp')
-    matrix = create_distance_matrix(prob)
-    random_solution = generate_random_solution(matrix)
-    dir_name = 'steepest_vertices_random'
-    for n in range(100):
-        start = time.time()
-        random_solution = generate_random_solution(matrix)
-        solution = steepest_vertex(random_solution, matrix)
-        stop = time.time()
-        time_results.append(stop - start)
-        path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
-        draw_and_save_paths(prob, random_solution, dir_name, f'{dir_name}_{n}')
-    print(f'Mean time: {np.mean(time_results)}')
-    print(f'Mean path length: {np.mean(path_results)}')
-    print(f'Best path length: {np.min(path_results)}')
-    print(f'Worst path length: {np.max(path_results)}')
-    print(f'Best iteration: {np.argmax(path_results)}')
+    for prob, prob_name in zip(files, ['kroA100', 'kroB100']):
+        prob = load_problem(prob)
+        matrix = create_distance_matrix(prob)
 
-    time_results = []
-    path_results = []
-    dir_name = 'random_walk'
-    for n in range(100):
-        start = time.time()
-        random_solution = generate_random_solution(matrix)
-        solution = steepest_vertex(random_solution, matrix)
-        stop = time.time()
-        time_results.append(stop - start)
-        path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
-        draw_and_save_paths(prob, random_solution, dir_name, f'{dir_name}_{n}')
+        for cycle, cycle_name in zip([two_regret, generate_random_solution], ['two_regret', 'random']):
+                for neighborhood, neighborhood_name in zip([[delta_for_inner_vertices, switch_inner_vertices], [delta_for_inner_edges, switch_inner_edges]], ['vertices', 'edges']):
+                    dir_name = f'{prob_name}_{cycle_name}_{neighborhood_name}'
+                    time_results = []
+                    path_results = []
+                    for n in range(100):
+                        start = time.time()
+                        solution = cycle(matrix)
+                        solution = steepest_vertex(solution, matrix, neighborhood[0], neighborhood[1])
+                        stop = time.time()
+                        time_results.append(stop - start)
+                        path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
+                        draw_and_save_paths(prob, solution, dir_name, f'{dir_name}_{n}')
+
+                    results = {
+                        'Mean time': np.mean(time_results),
+                        'Mean path length': np.mean(path_results),
+                        'Best path length': np.min(path_results),
+                        'Worst path length': np.max(path_results),
+                        'Best iteration': np.argmax(path_results)
+                    }
+
+                    save_results_to_file(f'{dir_name}\\results.txt', results)
+
 
 if __name__ == '__main__':
     main()
+
+
