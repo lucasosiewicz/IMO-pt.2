@@ -140,8 +140,42 @@ def draw_and_save_paths(prob, solution, dir_name, filename):
     plt.tight_layout()
     # save figure
     plt.savefig(f'{path}\{filename}.png')
+    plt.close()
 
-        
+
+def random_walk(solution, matrix):
+    improving = True
+    type_of_neighborhood = [0,1]#,2]  # 0 - inner vertices, 1 - inner edges, 2 - outer vertices
+    start = time.time()
+    stop = time.time()
+    while stop - start < 0.981:
+        # random choice of movement and path
+        movement = choice(type_of_neighborhood)
+        left_or_right = choice([0,1])
+        if movement == 0:       
+            # inner vertices
+            vertices = [choice(solution[left_or_right][1:-2]), choice(solution[left_or_right][1:-2])]
+            i = solution[left_or_right].index(vertices[0])
+            j = solution[left_or_right].index(vertices[1])
+
+            if delta_for_inner_vertices(matrix, solution, i, j, left_or_right) < 0:
+                switch_inner_vertices(solution, left_or_right, [i, j])
+        #elif movement == 1:
+            # uzupełnij Samuel
+        #    pass
+        else:
+            # outer vertices
+            vertices = [choice(solution[left_or_right][1:-1]), choice(solution[abs(left_or_right-1)][1:-1])]
+            i = solution[left_or_right].index(vertices[0])
+            j = solution[abs(left_or_right-1)].index(vertices[1])
+
+            if delta_for_outer_vertices(matrix, solution, i, j, left_or_right) < 0:
+                switch_outer_vertices(solution, left_or_right, [i, j])
+        stop = time.time()
+
+    return solution
+
+
 def main():
     time_results = []
     path_results = []
@@ -160,7 +194,21 @@ def main():
         draw_and_save_paths(prob, random_solution, dir_name, f'{dir_name}_{n}')
     print(f'Mean time: {np.mean(time_results)}')
     print(f'Mean path length: {np.mean(path_results)}')
+    print(f'Best path length: {np.min(path_results)}')
+    print(f'Worst path length: {np.max(path_results)}')
     print(f'Best iteration: {np.argmax(path_results)}')
+
+    time_results = []
+    path_results = []
+    dir_name = 'random_walk'
+    for n in range(100):
+        start = time.time()
+        random_solution = generate_random_solution(matrix)
+        solution = steepest_vertex(random_solution, matrix)
+        stop = time.time()
+        time_results.append(stop - start)
+        path_results.append(count_result(solution[0], matrix) + count_result(solution[1], matrix))
+        draw_and_save_paths(prob, random_solution, dir_name, f'{dir_name}_{n}')
 
 if __name__ == '__main__':
     main()
